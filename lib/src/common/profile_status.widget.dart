@@ -5,144 +5,120 @@ import 'package:laundromats/src/utils/index.dart';
 class ProfileStatusWidget extends StatelessWidget {
   final int? askedCount;
   final int? commentCount;
+  final int? likeCount;
+  final int? dislikeCount;
+  final String? selectedFilter; // To track the active filter
+  final Function(String?) onFilterSelected; // Callback function
 
   const ProfileStatusWidget({
     super.key,
     required this.askedCount,
     required this.commentCount,
+    required this.likeCount,
+    required this.dislikeCount,
+    required this.selectedFilter,
+    required this.onFilterSelected,
   });
 
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: EdgeInsets.symmetric(
-        horizontal: vMin(context, 4),
-        vertical: vMin(context, 3),
+      padding: EdgeInsets.only(
+        left: vMin(context, 4),
+        right: vMin(context, 4),
+        top: vMin(context, 3),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.center,
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: [
-          // Level with horizontal progress bar
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Text(
-                    'Level',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      fontFamily: 'Onset-Regular',
-                      color: Colors.grey,
-                    ),
-                  ),
-                  SizedBox(width: vMin(context, 4)),
-                  // Display Beginner label
-                  const Text(
-                    'Beginner',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      fontFamily: 'Onset',
-                      color: kColorSecondary,
-                    ),
-                  ),
-                ],
-              ),
-              // Display Level label
-
-              SizedBox(height: vMin(context, 1)),
-              // Horizontal progress bar
-              Container(
-                height: 10,
-                width: MediaQuery.of(context).size.width * 0.7,
-                decoration: BoxDecoration(
-                  color: Colors.grey[300],
-                  borderRadius: BorderRadius.circular(15),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.grey.withOpacity(0.5),
-                      spreadRadius: 1,
-                      blurRadius: 3,
-                      offset: const Offset(0, 1),
-                    ),
-                  ],
-                ),
-                child: FractionallySizedBox(
-                  alignment: Alignment.centerLeft,
-                  widthFactor: 0.3, // Adjust for progress percentage
-                  child: Container(
-                    decoration: BoxDecoration(
-                      gradient: const LinearGradient(
-                        colors: [kColorPrimary, Colors.lightGreen],
-                      ),
-                      borderRadius: BorderRadius.circular(15),
-                    ),
-                  ),
-                ),
-              ),
-              SizedBox(height: vMin(context, 2)),
-            ],
+          _buildStatusItem(
+            context: context,
+            title: 'Asked',
+            count: askedCount?.toString() ?? '0',
+            icon: Icons.question_answer_outlined,
+            filterKey: 'asked',
           ),
-
-          SizedBox(
-            height: vh(context, 3),
+          _buildStatusItem(
+            context: context,
+            title: 'Commented',
+            count: commentCount?.toString() ?? '0',
+            icon: Icons.comment_outlined,
+            filterKey: 'commented',
           ),
-          // Asked and Commented in one row
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: [
-              _buildStatItem(
-                context,
-                icon: Icons.question_answer,
-                count: askedCount,
-                label: "Asked",
-              ),
-              _buildStatItem(
-                context,
-                icon: Icons.comment,
-                count: commentCount,
-                label: "Commented",
-              ),
-            ],
+          _buildStatusItem(
+            context: context,
+            title: 'Liked',
+            count: likeCount?.toString() ?? '0',
+            icon: Icons.thumb_up_outlined,
+            filterKey: 'liked',
+          ),
+          _buildStatusItem(
+            context: context,
+            title: 'Disliked',
+            count: dislikeCount?.toString() ?? '0',
+            icon: Icons.thumb_down_outlined,
+            filterKey: 'disliked',
           ),
         ],
       ),
     );
   }
 
-  Widget _buildStatItem(BuildContext context,
-      {required IconData icon, int? count, required String label}) {
-    return Column(
-      children: [
-        Row(
+  Widget _buildStatusItem({
+    required BuildContext context,
+    required String title,
+    required String count,
+    required IconData icon,
+    required String filterKey,
+  }) {
+    bool isSelected = selectedFilter == filterKey;
+
+    return GestureDetector(
+      onTap: () {
+        if (isSelected) {
+          onFilterSelected(null); // Remove filter if already selected
+        } else {
+          onFilterSelected(filterKey); // Apply new filter
+        }
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 7, horizontal: 1),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+              color: isSelected ? kColorPrimary : Colors.grey.shade300),
+          color: isSelected
+              // ignore: deprecated_member_use
+              ? kColorPrimary.withOpacity(0.2)
+              : Colors.grey.shade200,
+        ),
+        width: vMin(context, 20), // Adjust width if needed
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, size: 28, color: kColorPrimary),
-            SizedBox(width: vMin(context, 1)),
+            Icon(icon,
+                size: 24, color: isSelected ? kColorPrimary : Colors.black),
+            const SizedBox(height: 5),
             Text(
-              count?.toString() ?? '0',
-              style: const TextStyle(
-                fontSize: 18,
+              title,
+              style: TextStyle(
+                fontSize: 11,
                 fontWeight: FontWeight.bold,
-                fontFamily: 'Onset',
-                color: kColorSecondary,
+                color: isSelected ? kColorPrimary : Colors.black,
+              ),
+            ),
+            const SizedBox(height: 1),
+            Text(
+              count,
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: isSelected ? kColorPrimary : Colors.black,
               ),
             ),
           ],
         ),
-        SizedBox(height: vMin(context, 0.5)),
-        Text(
-          label,
-          style: const TextStyle(
-            fontSize: 14,
-            fontFamily: 'Onset-Regular',
-            color: kColorSecondary,
-          ),
-        ),
-      ],
+      ),
     );
   }
 }

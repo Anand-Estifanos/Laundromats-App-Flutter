@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:laundromats/src/common/header.widget.dart';
-import 'package:laundromats/src/constants/app_button.dart';
 import 'package:laundromats/src/constants/app_styles.dart';
 import 'package:laundromats/src/screen/subscription/partials/manually.screen.dart';
 import 'package:laundromats/src/translate/en.dart';
@@ -44,11 +43,22 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen>
       keyboardHeight = 0;
     }
 
+    // ignore: deprecated_member_use
     return WillPopScope(
       onWillPop: _onWillPop,
       child: Scaffold(
         backgroundColor: kColorWhite,
         resizeToAvoidBottomInset: true,
+        appBar: PreferredSize(
+          preferredSize:
+              const Size.fromHeight(0.0), // Adjust the height as needed
+          child: AppBar(
+            backgroundColor: kColorWhite,
+            elevation: 0, // Removes shadow for a flat UI
+            automaticallyImplyLeading:
+                false, // Hides back button if unnecessary
+          ),
+        ),
         body: LayoutBuilder(
           builder: (context, constraints) {
             return SingleChildScrollView(
@@ -60,7 +70,11 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen>
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
-                      const HeaderWidget(role: false, isLogoutBtn: false),
+                      const HeaderWidget(
+                        role: false,
+                        isLogoutBtn: false,
+                        backIcon: true,
+                      ),
                       Padding(
                         padding: EdgeInsets.only(
                             left: vMin(context, 4),
@@ -202,16 +216,29 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen>
                         padding: EdgeInsets.all(vMin(context, 4)),
                         child: SizedBox(
                           width: vMin(context, 100),
-                          child: ButtonWidget(
-                            btnType: ButtonWidgetType.backBtn,
-                            borderColor: kColorPrimary,
-                            textColor: kColorWhite,
-                            fullColor: kColorPrimary,
-                            size: false,
-                            icon: true,
+                          child: TextButton(
+                            style: TextButton.styleFrom(
+                              backgroundColor:
+                                  kColorPrimary, // Green background color
+                              shape: RoundedRectangleBorder(
+                                borderRadius:
+                                    BorderRadius.circular(8), // Rounded corners
+                              ),
+                              padding: const EdgeInsets.symmetric(
+                                  vertical: 7,
+                                  horizontal: 20), // Adjust padding
+                            ),
                             onPressed: () {
                               Navigator.pop(context);
                             },
+                            child: const Text(
+                              "Back",
+                              style: TextStyle(
+                                color: Colors.white, // Text color
+                                fontSize: 15,
+                                fontFamily: 'Onset-Regular',
+                              ),
+                            ),
                           ),
                         ),
                       )

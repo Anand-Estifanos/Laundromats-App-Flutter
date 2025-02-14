@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:laundromats/src/common/header.widget.dart';
 import 'package:laundromats/src/common/progress.widget.dart';
-import 'package:laundromats/src/constants/app_button.dart';
 import 'package:laundromats/src/constants/app_styles.dart';
 import 'package:laundromats/src/screen/home/home.screen.dart';
 import 'package:laundromats/src/screen/login_step/category.screen.dart';
@@ -12,6 +11,7 @@ import 'package:laundromats/src/utils/global_variable.dart';
 import 'package:laundromats/src/utils/index.dart';
 import 'package:laundromats/src/utils/shared_preferences_util.dart';
 import 'package:logger/logger.dart';
+
 class OwnerScreen extends ConsumerStatefulWidget {
   const OwnerScreen({super.key});
 
@@ -64,8 +64,9 @@ class _OwnerScreenState extends ConsumerState<OwnerScreen> {
         role: "Owner",
         roleExpertIn: " ",
         roleBusinessTime: GlobalVariable.userbusinessTime!,
-        roleLaundromatsCount:
-            GlobalVariable.userLaundromatsCount!, // Add relevant value
+        roleLaundromatsCount: GlobalVariable.userLaundromatsCount!,
+        userAddress: GlobalVariable.userAddress!,
+        userPhoneNumber: GlobalVariable.userphoneNumber!,
       );
 
       logger.i(result);
@@ -82,14 +83,9 @@ class _OwnerScreenState extends ConsumerState<OwnerScreen> {
 
         if (mounted) {
           // Navigate to HomeScreen
-          Navigator.pushReplacement(
+          Navigator.push(
             context,
-            PageRouteBuilder(
-              pageBuilder: (context, animation1, animation2) =>
-                  const HomeScreen(),
-              transitionDuration: Duration.zero,
-              reverseTransitionDuration: Duration.zero,
-            ),
+            MaterialPageRoute(builder: (context) => const HomeScreen()),
           );
         }
       } else {
@@ -119,14 +115,9 @@ class _OwnerScreenState extends ConsumerState<OwnerScreen> {
   }
 
   void _onBackClicked() {
-    Navigator.pushReplacement(
+    Navigator.push(
       context,
-      PageRouteBuilder(
-        pageBuilder: (context, animation1, animation2) =>
-            const CategoryScreen(),
-        transitionDuration: Duration.zero,
-        reverseTransitionDuration: Duration.zero,
-      ),
+      MaterialPageRoute(builder: (context) => const CategoryScreen()),
     );
   }
 
@@ -138,10 +129,21 @@ class _OwnerScreenState extends ConsumerState<OwnerScreen> {
       screenHeight = 800;
       keyboardHeight = 0;
     }
+    // ignore: deprecated_member_use
     return WillPopScope(
         onWillPop: _onWillPop,
         child: Scaffold(
           resizeToAvoidBottomInset: true,
+          appBar: PreferredSize(
+            preferredSize:
+                const Size.fromHeight(0.0), // Adjust the height as needed
+            child: AppBar(
+              backgroundColor: kColorWhite,
+              elevation: 0, // Removes shadow for a flat UI
+              automaticallyImplyLeading:
+                  false, // Hides back button if unnecessary
+            ),
+          ),
           body: SizedBox.expand(
               child: SingleChildScrollView(
             child: FocusScope(
@@ -151,7 +153,11 @@ class _OwnerScreenState extends ConsumerState<OwnerScreen> {
                 child: Column(
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: <Widget>[
-                      const HeaderWidget(role: true, isLogoutBtn: false),
+                      const HeaderWidget(
+                        role: true,
+                        isLogoutBtn: false,
+                        backIcon: true,
+                      ),
                       SizedBox(
                         height: vMin(context, 10),
                       ),
@@ -181,6 +187,7 @@ class _OwnerScreenState extends ConsumerState<OwnerScreen> {
                         child: ProgressIndicatorWidget(
                           currentStep: currentStep,
                           activeColor: kColorPrimary,
+                          // ignore: deprecated_member_use
                           inactiveColor: kColorSecondary.withOpacity(0.5),
                         ),
                       ),
@@ -220,7 +227,7 @@ class _OwnerScreenState extends ConsumerState<OwnerScreen> {
                                       height: vh(context, 5),
                                       child: TextField(
                                         controller: _howLaundromatsValue,
-                                        keyboardType: TextInputType.name,
+                                        keyboardType: TextInputType.number,
                                         autocorrect: false,
                                         cursorColor: Colors.grey,
                                         decoration: const InputDecoration(
@@ -264,7 +271,7 @@ class _OwnerScreenState extends ConsumerState<OwnerScreen> {
                                       height: vh(context, 5),
                                       child: TextField(
                                         controller: _businessValue,
-                                        keyboardType: TextInputType.name,
+                                        keyboardType: TextInputType.number,
                                         autocorrect: false,
                                         cursorColor: Colors.grey,
                                         decoration: const InputDecoration(
@@ -292,30 +299,56 @@ class _OwnerScreenState extends ConsumerState<OwnerScreen> {
                                   children: [
                                     SizedBox(
                                       width: vMin(context, 20),
-                                      child: ButtonWidget(
-                                        btnType: ButtonWidgetType.backBtn,
-                                        borderColor: kColorPrimary,
-                                        textColor: kColorWhite,
-                                        fullColor: kColorPrimary,
-                                        size: false,
-                                        icon: true,
+                                      child: TextButton(
+                                        style: TextButton.styleFrom(
+                                          backgroundColor:
+                                              kColorPrimary, // Green background color
+                                          shape: RoundedRectangleBorder(
+                                            borderRadius: BorderRadius.circular(
+                                                8), // Rounded corners
+                                          ),
+                                          padding: const EdgeInsets.symmetric(
+                                              vertical: 7,
+                                              horizontal: 20), // Adjust padding
+                                        ),
                                         onPressed: () {
                                           _onBackClicked();
                                         },
+                                        child: const Text(
+                                          "Back",
+                                          style: TextStyle(
+                                            color: Colors.white, // Text color
+                                            fontSize: 15,
+                                            fontFamily: 'Onset-Regular',
+                                          ),
+                                        ),
                                       ),
                                     ),
                                     SizedBox(
                                       width: vMin(context, 20),
-                                      child: ButtonWidget(
-                                        btnType: ButtonWidgetType.nextBtn,
-                                        borderColor: kColorPrimary,
-                                        textColor: kColorWhite,
-                                        fullColor: kColorPrimary,
-                                        size: false,
-                                        icon: true,
+                                      child: TextButton(
+                                        style: TextButton.styleFrom(
+                                          backgroundColor:
+                                              kColorPrimary, // Green background color
+                                          shape: RoundedRectangleBorder(
+                                            borderRadius: BorderRadius.circular(
+                                                8), // Rounded corners
+                                          ),
+                                          padding: const EdgeInsets.symmetric(
+                                              vertical: 7,
+                                              horizontal: 20), // Adjust padding
+                                        ),
                                         onPressed: () {
                                           _onNextClicked();
                                         },
+                                        child: const Text(
+                                          "Next",
+                                          style: TextStyle(
+                                            color: Colors.white, // Text color
+                                            fontSize: 15,
+                                            fontFamily: 'Onset-Regular',
+                                          ),
+                                        ),
                                       ),
                                     ),
                                   ],

@@ -6,15 +6,50 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'dart:io';
 
+import 'package:shared_preferences/shared_preferences.dart';
+
 class AuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final GoogleSignIn _googleSignIn = GoogleSignIn();
 
   final logger = Logger();
 
-  final String baseUrl = 'http://192.168.141.105:5000/api';
-  // final String baseUrl = 'http://146.190.117.4:5000/api';
+  // final String baseUrl = 'http://192.168.141.105:5000/api';
+  final String baseUrl = 'http://146.190.117.4:5000/api';
   static const String uploadUrl = 'http://146.190.117.4:5000/image/upload';
+
+  Future<bool> checkUserExistence(String email) async {
+    final Uri url = Uri.parse("$baseUrl/users/googlecheck");
+
+    try {
+      final response = await http.post(
+        url,
+        headers: {"Content-Type": "application/json"},
+        body: jsonEncode({"email": email}),
+      );
+
+      if (response.statusCode == 200) {
+        final responseData = jsonDecode(response.body);
+        final userId = responseData["user_id"].toString();
+
+        // Save user ID locally
+        SharedPreferences prefs = await SharedPreferences.getInstance();
+        await prefs.setString("userId", userId);
+
+        logger.i("User exists. UserID: $userId");
+        return true; // User exists
+      } else if (response.statusCode == 404) {
+        logger.w("User does not exist.");
+        return false; // User does not exist
+      } else {
+        logger.e("Error checking user existence: ${response.body}");
+        return false; // Treat as user not found
+      }
+    } catch (e) {
+      logger.e("Network Error: $e");
+      return false; // Return false on network error
+    }
+  }
 
   Future<User?> signInWithGoogle() async {
     try {
@@ -111,6 +146,8 @@ class AuthService {
     required String roleExpertIn,
     required String roleBusinessTime,
     required String roleLaundromatsCount,
+    required String userAddress,
+    required String userPhoneNumber,
   }) async {
     final Uri url = Uri.parse('$baseUrl/auth/signup');
 
@@ -122,6 +159,8 @@ class AuthService {
       "role_expertIn": roleExpertIn,
       "role_businessTime": roleBusinessTime,
       "role_laundromatsCount": roleLaundromatsCount,
+      "addresss": userAddress,
+      "phoneNumber": userPhoneNumber
     };
 
     try {
@@ -383,5 +422,102 @@ class AuthService {
     } catch (e) {
       throw Exception('Error searching questions: $e');
     }
+  }
+
+  Future<Map<String, dynamic>> fetchUserData(int userId) async {
+    final url = Uri.parse('$baseUrl/users/userdata/$userId');
+    try {
+      final response = await http.get(url);
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        if (data['message'] == 'User data fetched successfully' &&
+            data['user'] != null) {
+          return {
+            'success': true,
+            'data': data['user'],
+          };
+        } else {
+          return {
+            'success': false,
+            'data': null,
+          };
+        }
+      } else {
+        return {
+          'success': false,
+          'data': null,
+        };
+      }
+    } catch (e) {
+      throw Exception('Error fetching user data: $e');
+    }
+  }
+
+  Future<Map<String, dynamic>> updateUserProfile(
+      Map<String, dynamic> userData) async {
+    final Uri url = Uri.parse('$baseUrl/auth/update');
+
+    try {
+      final response = await http.post(
+        url,
+        headers: {"Content-Type": "application/json"},
+        body: jsonEncode(userData),
+      );
+
+      if (response.statusCode == 200) {
+        return {"success": true, "message": "Profile updated successfully"};
+      } else {
+        return {
+          "success": false,
+          "message": jsonDecode(response.body)['message'] ?? 'Unknown error'
+        };
+      }
+    } catch (e) {
+      return {"success": false, "message": e.toString()};
+    }
+  }
+
+  /// **Delete User Account**
+  Future<bool> deleteUser(int userId) async {
+    final Uri url = Uri.parse("$baseUrl/users/deleteuser");
+
+    try {
+      final response = await http.post(
+        url,
+        headers: {"Content-Type": "application/json"},
+        body: jsonEncode({"user_id": userId}),
+      );
+
+      // **Handle API response classification**
+      if (response.statusCode == 200) {
+        final responseData = jsonDecode(response.body);
+        logger.i("Account deleted successfully: ${responseData['message']}");
+
+        // Clear user details from SharedPreferences
+        await _clearUserData();
+
+        return true; // ✅ Account deletion successful
+      } else if (response.statusCode == 400) {
+        logger.w("Bad Request: ${response.body}");
+        return false;
+      } else if (response.statusCode == 500) {
+        logger.e("Server Error: ${response.body}");
+        return false;
+      } else {
+        logger.e("Unexpected response: ${response.body}");
+        return false;
+      }
+    } catch (e) {
+      logger.e("Network Error: $e");
+      return false;
+    }
+  }
+
+  /// **Clear User Data from SharedPreferences**
+  Future<void> _clearUserData() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    await prefs.clear();
+    logger.i("User data cleared from local storage.");
   }
 }

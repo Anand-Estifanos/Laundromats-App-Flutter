@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:laundromats/src/common/header.widget.dart';
 import 'package:laundromats/src/common/progress.widget.dart';
-import 'package:laundromats/src/constants/app_button.dart';
 import 'package:laundromats/src/constants/app_styles.dart';
 import 'package:laundromats/src/screen/login_step/mechanic.screen.dart';
 import 'package:laundromats/src/screen/login_step/other.screen.dart';
@@ -53,33 +52,26 @@ class _CategoryScreenState extends ConsumerState<CategoryScreen> {
   Future<void> _onClickCategory() async {
     if (selectedRole == 0) {
       GlobalVariable.userRole = "Mechanic";
-      Navigator.pushReplacement(
+      Navigator.push(
         context,
-        PageRouteBuilder(
-          pageBuilder: (context, animation1, animation2) =>
-              const MechanicScreen(),
-          transitionDuration: Duration.zero,
-          reverseTransitionDuration: Duration.zero,
+        MaterialPageRoute(
+          builder: (context) => const MechanicScreen(),
         ),
       );
     } else if (selectedRole == 1) {
       GlobalVariable.userRole = "Owner";
-      Navigator.pushReplacement(
+      Navigator.push(
         context,
-        PageRouteBuilder(
-          pageBuilder: (context, animation1, animation2) => const OwnerScreen(),
-          transitionDuration: Duration.zero,
-          reverseTransitionDuration: Duration.zero,
+        MaterialPageRoute(
+          builder: (context) => const OwnerScreen(),
         ),
       );
     } else if (selectedRole == 2) {
       GlobalVariable.userRole = "Other";
-      Navigator.pushReplacement(
+      Navigator.push(
         context,
-        PageRouteBuilder(
-          pageBuilder: (context, animation1, animation2) => const OtherScreen(),
-          transitionDuration: Duration.zero,
-          reverseTransitionDuration: Duration.zero,
+        MaterialPageRoute(
+          builder: (context) => const OtherScreen(),
         ),
       );
     }
@@ -93,10 +85,21 @@ class _CategoryScreenState extends ConsumerState<CategoryScreen> {
       screenHeight = 800;
       keyboardHeight = 0;
     }
+    // ignore: deprecated_member_use
     return WillPopScope(
         onWillPop: _onWillPop,
         child: Scaffold(
           resizeToAvoidBottomInset: true,
+          appBar: PreferredSize(
+            preferredSize:
+                const Size.fromHeight(0.0), // Adjust the height as needed
+            child: AppBar(
+              backgroundColor: kColorWhite,
+              elevation: 0, // Removes shadow for a flat UI
+              automaticallyImplyLeading:
+                  false, // Hides back button if unnecessary
+            ),
+          ),
           body: SizedBox.expand(
               child: SingleChildScrollView(
             child: FocusScope(
@@ -106,7 +109,11 @@ class _CategoryScreenState extends ConsumerState<CategoryScreen> {
                 child: Column(
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: <Widget>[
-                      const HeaderWidget(role: true, isLogoutBtn: false),
+                      const HeaderWidget(
+                        role: true,
+                        isLogoutBtn: false,
+                        backIcon: true,
+                      ),
                       SizedBox(
                         height: vMin(context, 10),
                       ),
@@ -136,6 +143,7 @@ class _CategoryScreenState extends ConsumerState<CategoryScreen> {
                         child: ProgressIndicatorWidget(
                           currentStep: currentStep,
                           activeColor: kColorPrimary,
+                          // ignore: deprecated_member_use
                           inactiveColor: kColorSecondary.withOpacity(0.5),
                         ),
                       ),
@@ -222,16 +230,29 @@ class _CategoryScreenState extends ConsumerState<CategoryScreen> {
                                     const Spacer(),
                                     SizedBox(
                                       width: vMin(context, 20),
-                                      child: ButtonWidget(
-                                        btnType: ButtonWidgetType.nextBtn,
-                                        borderColor: kColorPrimary,
-                                        textColor: kColorWhite,
-                                        size: false,
-                                        fullColor: kColorPrimary,
-                                        icon: true,
+                                      child: TextButton(
+                                        style: TextButton.styleFrom(
+                                          backgroundColor:
+                                              kColorPrimary, // Green background color
+                                          shape: RoundedRectangleBorder(
+                                            borderRadius: BorderRadius.circular(
+                                                8), // Rounded corners
+                                          ),
+                                          padding: const EdgeInsets.symmetric(
+                                              vertical: 7,
+                                              horizontal: 20), // Adjust padding
+                                        ),
                                         onPressed: () {
                                           _onClickCategory();
                                         },
+                                        child: const Text(
+                                          "Next",
+                                          style: TextStyle(
+                                            color: Colors.white, // Text color
+                                            fontSize: 15,
+                                            fontFamily: 'Onset-Regular',
+                                          ),
+                                        ),
                                       ),
                                     ),
                                   ],

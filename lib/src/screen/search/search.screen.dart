@@ -3,9 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:laundromats/src/common/header.widget.dart';
 import 'package:laundromats/src/components/bottom_nav_bar.dart';
 import 'package:laundromats/src/components/filter.category.dart';
-import 'package:laundromats/src/constants/app_button.dart';
 import 'package:laundromats/src/constants/app_styles.dart';
-import 'package:laundromats/src/screen/ask_question/ask_question.screen.dart';
 import 'package:laundromats/src/screen/home/partials/home_data.widget.dart';
 import 'package:laundromats/src/services/authservice.dart';
 import 'package:laundromats/src/translate/en.dart';
@@ -124,6 +122,16 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
       child: Scaffold(
           backgroundColor: kColorWhite,
           resizeToAvoidBottomInset: true,
+          appBar: PreferredSize(
+            preferredSize:
+                const Size.fromHeight(0.0), // Adjust the height as needed
+            child: AppBar(
+              backgroundColor: kColorWhite,
+              elevation: 0, // Removes shadow for a flat UI
+              automaticallyImplyLeading:
+                  false, // Hides back button if unnecessary
+            ),
+          ),
           body: SizedBox.expand(
               child: SingleChildScrollView(
             child: FocusScope(
@@ -132,7 +140,11 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                 child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: <Widget>[
-                      const HeaderWidget(role: true, isLogoutBtn: false),
+                      const HeaderWidget(
+                        role: true,
+                        isLogoutBtn: false,
+                        backIcon: false,
+                      ),
                       Padding(
                           padding: EdgeInsets.all(vMin(context, 4)),
                           child: SizedBox(
@@ -151,37 +163,13 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                                       color: kColorSecondary,
                                     ),
                                   ),
-                                  SizedBox(
-                                    width: vMin(context, 40),
-                                    child: ButtonWidget(
-                                      btnType: ButtonWidgetType.askQuestionBtn,
-                                      borderColor: kColorPrimary,
-                                      textColor: kColorWhite,
-                                      fullColor: kColorPrimary,
-                                      size: false,
-                                      icon: true,
-                                      onPressed: () {
-                                        Navigator.pushReplacement(
-                                          context,
-                                          PageRouteBuilder(
-                                            pageBuilder: (context, animation1,
-                                                    animation2) =>
-                                                const AskQuestionScreen(),
-                                            transitionDuration: Duration.zero,
-                                            reverseTransitionDuration:
-                                                Duration.zero,
-                                          ),
-                                        );
-                                      },
-                                    ),
-                                  ),
                                 ],
                               ))),
                       Padding(
                         padding: EdgeInsets.only(
                             left: vMin(context, 4),
                             right: vMin(context, 4),
-                            top: vMin(context, 2)),
+                            top: vMin(context, 0)),
                         child: Text(
                           exploreQuestionCategory.toString(),
                           textAlign: TextAlign.left,

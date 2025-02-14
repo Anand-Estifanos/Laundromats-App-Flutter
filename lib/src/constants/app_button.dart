@@ -23,7 +23,12 @@ enum ButtonWidgetType {
   selectAllBtn,
   filterBtn,
   disSelectAllBtn,
-  emailLogin
+  emailLogin,
+  editProfile,
+  settingBtn,
+  termsBtn,
+  updateBtn,
+  addBtn
 }
 
 class ButtonWidget extends StatefulWidget {
@@ -59,7 +64,7 @@ class _ButtonWidgetState extends State<ButtonWidget> {
 
     switch (widget.btnType) {
       case ButtonWidgetType.emailLogin:
-        btnTitle = "Sign-In with Email";
+        btnTitle = "Sign up using an app";
         if (widget.icon == true) {
           iconWidget = Icon(
             Icons.mail, // System-provided email icon
@@ -88,8 +93,23 @@ class _ButtonWidgetState extends State<ButtonWidget> {
           );
         }
         break;
+      case ButtonWidgetType.updateBtn:
+        btnTitle = updateBtn.toString();
+        break;
+      case ButtonWidgetType.addBtn:
+        btnTitle = addBtn.toString();
+        break;
       case ButtonWidgetType.nextBtn:
         btnTitle = nextBtn.toString();
+        break;
+      case ButtonWidgetType.editProfile:
+        btnTitle = editprofileBtn.toString();
+        break;
+      case ButtonWidgetType.settingBtn:
+        btnTitle = settingBtn.toString();
+        break;
+      case ButtonWidgetType.termsBtn:
+        btnTitle = termsBtn.toString();
         break;
       case ButtonWidgetType.backBtn:
         btnTitle = backBtn.toString();
@@ -202,29 +222,31 @@ class _ButtonWidgetState extends State<ButtonWidget> {
               ),
             ),
             onPressed: widget.onPressed,
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                if (iconWidget != null) ...[
-                  iconWidget,
-                  SizedBox(
-                    width: vMin(context, 1),
-                  )
-                ],
-                Text(
-                  btnTitle,
-                  style: TextStyle(
-                    color: widget.textColor!,
-                    fontFamily: 'Onset-Regular',
+            child: Flexible(
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  if (iconWidget != null) ...[
+                    iconWidget,
+                    SizedBox(width: vMin(context, 1)),
+                  ],
+                  Flexible(
+                    // Prevents text overflow
+                    child: Text(
+                      btnTitle,
+                      overflow: TextOverflow.ellipsis, // Avoids breaking UI
+                      style: TextStyle(
+                        color: widget.textColor!,
+                        fontFamily: 'Onset-Regular',
+                      ),
+                    ),
                   ),
-                ),
-                if (arrowIconWidget != null) ...[
-                  SizedBox(
-                    width: vMin(context, 1),
-                  ),
-                  arrowIconWidget,
+                  if (arrowIconWidget != null) ...[
+                    SizedBox(width: vMin(context, 1)),
+                    arrowIconWidget,
+                  ],
                 ],
-              ],
+              ),
             ),
           ),
         ),

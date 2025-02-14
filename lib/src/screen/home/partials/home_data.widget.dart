@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:laundromats/src/constants/app_button.dart';
 import 'package:laundromats/src/constants/app_styles.dart';
+import 'package:laundromats/src/screen/home/userproflie.screen.dart';
 import 'package:laundromats/src/services/authservice.dart';
+import 'package:laundromats/src/utils/global_variable.dart';
 import 'package:laundromats/src/utils/index.dart';
 import 'package:logger/logger.dart';
 
@@ -28,13 +29,14 @@ class _HomeDataWidgetState extends ConsumerState<HomeDataWidget> {
 
   final logger = Logger();
   bool initialized = false;
-
+  String? username;
   @override
   void initState() {
     super.initState();
 
     if (widget.questions.isNotEmpty) {
       initializeData();
+      logger.i(widget.questions);
     }
   }
 
@@ -85,24 +87,28 @@ class _HomeDataWidgetState extends ConsumerState<HomeDataWidget> {
             "answer_id": response["answer_id"],
             "answer": answerText,
             "user_id": 12, // Replace with actual user ID
-            "user_name": "Current User", // Replace with logged-in user's name
+            "user_name":
+                GlobalVariable.userName, // Replace with logged-in user's name
             "created_at": DateTime.now().toIso8601String(),
           });
           answerControllers[questionId]?.clear();
           answerInputVisible.remove(questionId);
         });
 
+        // ignore: use_build_context_synchronously
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text("Answer submitted successfully!")),
         );
       } else {
+        // ignore: use_build_context_synchronously
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
               content: Text(response["message"] ?? "Failed to submit answer!")),
         );
       }
     } catch (e) {
-      print("Error submitting answer: $e");
+      logger.i("Error submitting answer: $e");
+      // ignore: use_build_context_synchronously
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Error: Unable to submit answer.")),
       );
@@ -120,12 +126,13 @@ class _HomeDataWidgetState extends ConsumerState<HomeDataWidget> {
     });
   }
 
-  void toggleAnswers(int questionId) {
+  void toggleAnswers(int? questionId) {
+    if (questionId == null) return;
     setState(() {
       if (expandedQuestions.contains(questionId)) {
-        expandedQuestions.remove(questionId); // Collapse if already expanded
+        expandedQuestions.remove(questionId);
       } else {
-        expandedQuestions.add(questionId); // Expand otherwise
+        expandedQuestions.add(questionId);
       }
     });
   }
@@ -241,6 +248,70 @@ class _HomeDataWidgetState extends ConsumerState<HomeDataWidget> {
     }
   }
 
+  void _handleUserNavigation(int? userId) async {
+    if (userId == null) {
+      _showUserNotFoundDialog();
+      return;
+    }
+
+    // Show Loading Dialog
+    _showLoadingDialog();
+
+    final authService = AuthService();
+    final result = await authService.fetchUserData(userId);
+
+    // Close Loading Dialog after getting response
+    if (mounted) Navigator.pop(context);
+
+    if (result['success'] == true) {
+      // ✅ Navigate to User Profile Screen if user exists
+      Navigator.push(
+        // ignore: use_build_context_synchronously
+        context,
+        MaterialPageRoute(
+          builder: (context) => UserProfileScreen(userId: userId),
+        ),
+      );
+    } else {
+      // ❌ Show error dialog if user not found
+      _showUserNotFoundDialog();
+    }
+  }
+
+// ❌ Show Dialog if User Not Found
+  void _showUserNotFoundDialog() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text("User Not Found"),
+          content: const Text("This user does not exist or has been removed."),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context); // Close the dialog
+              },
+              child: const Text("OK"),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+// 🔄 Show Loading Dialog
+  void _showLoadingDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: false, // Prevent closing while loading
+      builder: (BuildContext context) {
+        return const Center(
+          child: CircularProgressIndicator(), // Loading Spinner
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Column(
@@ -292,15 +363,23 @@ class _HomeDataWidgetState extends ConsumerState<HomeDataWidget> {
                     children: [
                       Image.asset('assets/images/icons/user.png'),
                       SizedBox(width: vMin(context, 2)),
-                      Text(
-                        question["user"]?["user_name"] ?? "Anonymous",
-                        style: const TextStyle(
-                          color: kColorSecondary,
-                          fontSize: 14,
+                      GestureDetector(
+                        onTap: () =>
+                            _handleUserNavigation(question["user"]?["user_id"]),
+                        child: Text(
+                          question["user"]?["user_name"] ?? "Anonymous",
+                          style: const TextStyle(
+                            color: kColorSecondary,
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                            decoration: TextDecoration
+                                .underline, // Optional for emphasis
+                          ),
                         ),
                       ),
                     ],
                   ),
+
                   SizedBox(height: vMin(context, 3)),
 
                   // Question Content
@@ -479,7 +558,7 @@ class _HomeDataWidgetState extends ConsumerState<HomeDataWidget> {
                                               "assets/images/icons/user.png"),
                                           SizedBox(width: vMin(context, 2)),
                                           Text(
-                                            answer["user_name"]!,
+                                            answer["user_name"] ?? "Anonymous",
                                             style: const TextStyle(
                                               fontWeight: FontWeight.bold,
                                               fontSize: 14,
@@ -522,8 +601,12 @@ class _HomeDataWidgetState extends ConsumerState<HomeDataWidget> {
                     children: [
                       InkWell(
                         onTap: () => toggleAnswerInput(question["question_id"]),
-                        child:
-                            Image.asset("assets/images/icons/chat-message.png"),
+                        child: Image.asset(
+                          "assets/images/icons/chat-message.png",
+                          width: 20, // Set custom width
+                          height: 20, // Set custom height
+                          fit: BoxFit.contain, // Ensures the image fits well
+                        ),
                       ),
                       SizedBox(height: vMin(context, 2)),
                       SizedBox(width: vMin(context, 1)),
@@ -543,7 +626,10 @@ class _HomeDataWidgetState extends ConsumerState<HomeDataWidget> {
                           "assets/images/icons/like.png",
                           color: userReactionMap[question['question_id']] == 1
                               ? Colors.green // Highlighted color for like
-                              : Colors.grey, // Default color
+                              : Colors.grey,
+                          width: 20, // Set custom width
+                          height: 20, // Set custom height
+                          fit: BoxFit.contain,
                         ),
                       ),
                       SizedBox(width: vMin(context, 1)),
@@ -565,8 +651,11 @@ class _HomeDataWidgetState extends ConsumerState<HomeDataWidget> {
                         child: Image.asset(
                           "assets/images/icons/dislike.png",
                           color: userReactionMap[question['question_id']] == 0
-                              ? Colors.red // Highlighted color for dislike
-                              : Colors.grey, // Default color
+                              ? Colors.red
+                              : Colors.grey,
+                          width: 20, // Set custom width
+                          height: 20, // Set custom height
+                          fit: BoxFit.contain,
                         ),
                       ),
                       SizedBox(width: vMin(context, 1)),
@@ -581,16 +670,39 @@ class _HomeDataWidgetState extends ConsumerState<HomeDataWidget> {
                       ),
                       const Spacer(),
                       SizedBox(
-                        width: vMin(context, 40),
-                        child: ButtonWidget(
-                          btnType: ButtonWidgetType.seeAllAnsersBtn,
-                          borderColor: kColorPrimary,
-                          textColor: kColorWhite,
-                          fullColor: kColorPrimary,
-                          size: false,
-                          icon: true,
+                        width: vMin(context, 45),
+                        child: TextButton(
+                          style: TextButton.styleFrom(
+                            backgroundColor:
+                                kColorPrimary, // Green background color
+                            shape: RoundedRectangleBorder(
+                              borderRadius:
+                                  BorderRadius.circular(8), // Rounded corners
+                            ),
+                            padding: const EdgeInsets.symmetric(
+                                vertical: 7, horizontal: 20), // Adjust padding
+                          ),
                           onPressed: () =>
                               toggleAnswers(question["question_id"]),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              // Space between icon and text
+                              const Text(
+                                "See all answers",
+                                style: TextStyle(
+                                  color: Colors.white, // Text color
+                                  fontSize: 13.5,
+                                  fontFamily: 'Onset-Regular',
+                                ),
+                              ),
+                              Image.asset(
+                                'assets/images/icons/arrow-right.png',
+                                width: vMin(context, 5),
+                                height: vMin(context, 5),
+                              )
+                            ],
+                          ),
                         ),
                       ),
                     ],

@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:laundromats/src/common/header.widget.dart';
+import 'package:laundromats/src/common/profile_status.widget.dart';
 import 'package:laundromats/src/components/bottom_nav_bar.dart';
-import 'package:laundromats/src/constants/app_button.dart';
 import 'package:laundromats/src/constants/app_styles.dart';
 import 'package:laundromats/src/screen/home/partials/home_data.widget.dart';
 import 'package:laundromats/src/services/authservice.dart';
@@ -30,6 +30,12 @@ class _QuestionScreenState extends ConsumerState<QuestionScreen> {
   List<dynamic> questions = [];
   Set<String> selectedCategories = {};
   bool isLoading = false;
+  int? askedCount;
+  int? commentCount;
+  int? likeCount;
+  int? dislikeCount;
+  String? selectedFilter; // Tracks active filter
+  List<dynamic> filteredQuestions = []; // Stores filtered questions
 
   final logger = Logger();
 
@@ -39,16 +45,20 @@ class _QuestionScreenState extends ConsumerState<QuestionScreen> {
     getUserQuestions();
   }
 
+  /// Fetch user questions and apply the filter
   Future<void> getUserQuestions() async {
+    setState(() {
+      isLoading = true; // Show loading
+    });
+
     SharedPreferences prefs = await SharedPreferences.getInstance();
     String? userIdString = prefs.getString('userId');
 
     if (userIdString != null) {
       int? parsedUserId = int.tryParse(userIdString);
-
       if (parsedUserId != null) {
         setState(() {
-          userId = parsedUserId; // Ensure `setState` is updating properly
+          userId = parsedUserId;
         });
 
         final authService = AuthService();
@@ -59,38 +69,45 @@ class _QuestionScreenState extends ConsumerState<QuestionScreen> {
 
             setState(() {
               questions = fetchedQuestions;
-            });
+              askedCount = questions.length;
+              commentCount = questions.fold<int>(0, (sum, question) {
+                final answers = question['answers'] as List<dynamic>?;
+                return sum + (answers?.length ?? 0);
+              });
 
-            // logger.i(questions);
-          } else {
-            logger.e('Invalid user ID: $userId');
+              likeCount = questions.fold<int>(0, (sum, question) {
+                return sum +
+                    (int.tryParse(question['likes_count']?.toString() ?? '0') ??
+                        0);
+              });
+
+              dislikeCount = questions.fold<int>(0, (sum, question) {
+                return sum +
+                    (int.tryParse(
+                            question['dislikes_count']?.toString() ?? '0') ??
+                        0);
+              });
+
+              isLoading = false;
+              applyFilter(); // Apply filter after fetching data
+            });
           }
         } catch (e) {
           logger.e('Error fetching user questions: $e');
+          setState(() {
+            isLoading = false;
+          });
         }
       }
     }
   }
 
-  void _openFilterModal() async {
-    final selectedFilters = await showDialog<Set<String>>(
-      context: context,
-      builder: (context) => const FilterCategoryModal(),
-    );
-
-    if (selectedFilters != null) {
-      setState(() {
-        selectedCategories = selectedFilters; // ✅ Update selected categories
-      });
-    }
-  }
-
+  /// Search questions with applied filters
   Future<void> searchQuestions() async {
     if (userId == null) return;
 
     setState(() {
-      questions = []; // Clear the list while searching
-      isLoading = true; // Show loading indicator
+      isLoading = true; // Show loading
     });
 
     try {
@@ -106,13 +123,69 @@ class _QuestionScreenState extends ConsumerState<QuestionScreen> {
 
       setState(() {
         questions = response;
-        isLoading = false; // Hide loading indicator
+        isLoading = false;
+        applyFilter(); // Apply filter after searching
       });
     } catch (e) {
       logger.e('Error searching questions: $e');
       setState(() {
-        isLoading = false; // Hide loading indicator on error
+        isLoading = false;
       });
+    }
+  }
+
+  /// Apply filters when a user selects a tab
+  void applyFilter() {
+    setState(() {
+      List<Map<String, dynamic>> tempFilteredQuestions = questions
+          .cast<Map<String, dynamic>>() // Ensure correct type
+          .where((q) =>
+              selectedCategories.isEmpty || // Show all if no category selected
+              selectedCategories.contains(q["category"]))
+          .toList(); // Convert back to a list
+
+      // Apply tab-based filters
+      if (selectedFilter == 'commented') {
+        tempFilteredQuestions = tempFilteredQuestions
+            .where((q) => q['answers'] != null && q['answers'].isNotEmpty)
+            .toList();
+      } else if (selectedFilter == 'liked') {
+        tempFilteredQuestions = tempFilteredQuestions
+            .where((q) => (q['likes_count'] ?? 0) > 0)
+            .toList();
+      } else if (selectedFilter == 'disliked') {
+        tempFilteredQuestions = tempFilteredQuestions
+            .where((q) => (q['dislikes_count'] ?? 0) > 0)
+            .toList();
+      }
+
+      filteredQuestions = tempFilteredQuestions;
+    });
+  }
+
+  /// Handles filter selection
+  void onFilterSelected(String? filterKey) {
+    setState(() {
+      if (selectedFilter == filterKey) {
+        selectedFilter = null;
+      } else {
+        selectedFilter = filterKey;
+      }
+      applyFilter();
+    });
+  }
+
+  void _openFilterModal() async {
+    final selectedFilters = await showDialog<Set<String>>(
+      context: context,
+      builder: (context) => const FilterCategoryModal(),
+    );
+
+    if (selectedFilters != null) {
+      setState(() {
+        selectedCategories = selectedFilters; // ✅ Update selected categories
+      });
+      applyFilter();
     }
   }
 
@@ -130,6 +203,16 @@ class _QuestionScreenState extends ConsumerState<QuestionScreen> {
       child: Scaffold(
         backgroundColor: kColorWhite,
         resizeToAvoidBottomInset: true,
+        appBar: PreferredSize(
+          preferredSize:
+              const Size.fromHeight(0.0), // Adjust the height as needed
+          child: AppBar(
+            backgroundColor: kColorWhite,
+            elevation: 0, // Removes shadow for a flat UI
+            automaticallyImplyLeading:
+                false, // Hides back button if unnecessary
+          ),
+        ),
         body: SizedBox.expand(
           child: SingleChildScrollView(
             child: FocusScope(
@@ -138,17 +221,24 @@ class _QuestionScreenState extends ConsumerState<QuestionScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: <Widget>[
-                    const HeaderWidget(role: true, isLogoutBtn: false),
+                    const HeaderWidget(
+                      role: true,
+                      isLogoutBtn: false,
+                      backIcon: false,
+                    ),
 
                     // Header Section
                     Padding(
-                      padding: EdgeInsets.all(vMin(context, 4)),
+                      padding: EdgeInsets.only(
+                          top: vh(context, 3),
+                          left: vw(context, 2),
+                          right: vw(context, 2)),
                       child: SizedBox(
                         width: vww(context, 100),
-                        child: Row(
+                        child: const Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            const Text(
+                            Text(
                               "My Questions",
                               textAlign: TextAlign.center,
                               style: TextStyle(
@@ -158,65 +248,7 @@ class _QuestionScreenState extends ConsumerState<QuestionScreen> {
                                 color: kColorSecondary,
                               ),
                             ),
-                            SizedBox(
-                              width: vMin(context, 40),
-                              child: ButtonWidget(
-                                btnType: ButtonWidgetType.askQuestionBtn,
-                                borderColor: kColorPrimary,
-                                textColor: kColorWhite,
-                                fullColor: kColorPrimary,
-                                size: false,
-                                icon: true,
-                                onPressed: () {
-                                  Navigator.pushReplacement(
-                                    context,
-                                    PageRouteBuilder(
-                                      pageBuilder:
-                                          (context, animation1, animation2) =>
-                                              const AskQuestionScreen(),
-                                      transitionDuration: Duration.zero,
-                                      reverseTransitionDuration: Duration.zero,
-                                    ),
-                                  );
-                                },
-                              ),
-                            ),
                           ],
-                        ),
-                      ),
-                    ),
-
-                    Padding(
-                      padding: EdgeInsets.only(
-                          left: vMin(context, 4),
-                          right: vMin(context, 4),
-                          top: vMin(context, 2)),
-                      child: Text(
-                        allYourQuestions.toString(),
-                        textAlign: TextAlign.left,
-                        softWrap: true,
-                        style: const TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.bold,
-                          fontFamily: 'Onset-Regular',
-                          color: kColorSecondary,
-                        ),
-                      ),
-                    ),
-
-                    Padding(
-                      padding: EdgeInsets.only(
-                          left: vMin(context, 4),
-                          right: vMin(context, 4),
-                          top: vMin(context, 2)),
-                      child: Text(
-                        "${questions.length} Questions",
-                        textAlign: TextAlign.left,
-                        softWrap: true,
-                        style: const TextStyle(
-                          fontSize: 12,
-                          fontFamily: 'Onset-Regular',
-                          color: kColorThird,
                         ),
                       ),
                     ),
@@ -255,8 +287,13 @@ class _QuestionScreenState extends ConsumerState<QuestionScreen> {
                                 filled: false,
                                 disabledBorder: InputBorder.none,
                                 contentPadding:
-                                    const EdgeInsets.symmetric(horizontal: 10),
+                                    const EdgeInsets.symmetric(horizontal: 5),
                                 counterText: '',
+                                prefixIcon: const Icon(
+                                  Icons.search,
+                                  color: kColorLightGrey,
+                                  size: 20,
+                                ),
                                 suffixIcon: _searchValue.text
                                         .isNotEmpty // Show icons only when text exists
                                     ? Row(
@@ -294,6 +331,32 @@ class _QuestionScreenState extends ConsumerState<QuestionScreen> {
                               )),
                         ],
                       ),
+                    ),
+
+                    Padding(
+                      padding: EdgeInsets.only(
+                          left: vMin(context, 4),
+                          right: vMin(context, 4),
+                          top: vMin(context, 2)),
+                      child: Text(
+                        "${questions.length} Questions",
+                        textAlign: TextAlign.left,
+                        softWrap: true,
+                        style: const TextStyle(
+                          fontSize: 12,
+                          fontFamily: 'Onset-Regular',
+                          color: kColorThird,
+                        ),
+                      ),
+                    ),
+
+                    ProfileStatusWidget(
+                      askedCount: askedCount ?? 0,
+                      commentCount: commentCount ?? 0,
+                      likeCount: likeCount ?? 0,
+                      dislikeCount: dislikeCount ?? 0,
+                      selectedFilter: selectedFilter,
+                      onFilterSelected: onFilterSelected,
                     ),
 
                     if (selectedCategories.isNotEmpty)
@@ -337,38 +400,34 @@ class _QuestionScreenState extends ConsumerState<QuestionScreen> {
                       ),
 
                     // Question List
+                    // Question List
                     Padding(
                       padding: EdgeInsets.only(
-                        left: vMin(context, 4),
-                        right: vMin(context, 4),
-                        top: vMin(context, 2),
-                      ),
-                      child: Column(
-                        children: [
-                          isLoading
-                              ? const Center(
-                                  child: CircularProgressIndicator(),
-                                )
-                              : questions.isNotEmpty
-                                  ? HomeDataWidget(
-                                      questions: questions
-                                          .cast<Map<String, dynamic>>(),
-                                    )
-                                  : const Center(
-                                      child: Padding(
-                                        padding: EdgeInsets.all(16.0),
-                                        child: Text(
-                                          "No questions found.",
-                                          style: TextStyle(
+                          left: vMin(context, 4),
+                          right: vMin(context, 4),
+                          top: vMin(context, 2)),
+                      child: isLoading
+                          ? const Center(
+                              child: Padding(
+                                padding: EdgeInsets.all(20.0),
+                                child: CircularProgressIndicator(
+                                    color: kColorPrimary), // Loader
+                              ),
+                            )
+                          : filteredQuestions.isNotEmpty
+                              ? HomeDataWidget(
+                                  questions: filteredQuestions
+                                      .cast<Map<String, dynamic>>())
+                              : const Center(
+                                  child: Padding(
+                                    padding: EdgeInsets.all(16.0),
+                                    child: Text("No questions found.",
+                                        style: TextStyle(
                                             fontSize: 14,
                                             fontWeight: FontWeight.bold,
-                                            color: kColorSecondary,
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                        ],
-                      ),
+                                            color: kColorSecondary)),
+                                  ),
+                                ),
                     ),
                   ],
                 ),
@@ -376,6 +435,25 @@ class _QuestionScreenState extends ConsumerState<QuestionScreen> {
             ),
           ),
         ),
+        floatingActionButton: FloatingActionButton(
+          onPressed: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                  builder: (context) => const AskQuestionScreen()),
+            );
+          },
+          backgroundColor: kColorPrimary,
+          shape: const CircleBorder(), // Ensures Circular Shape
+          child: const Icon(
+            Icons.edit_document, // Edit Icon Similar to Image
+            color: Colors.white, // White Color for Icon
+            size: 26, // Slightly Larger for Visibility
+          ),
+        ),
+        floatingActionButtonLocation:
+            FloatingActionButtonLocation.endFloat, // ✅ Bottom Right
+
         bottomNavigationBar: BottomNavBar(currentIndex: _currentIndex),
       ),
     );

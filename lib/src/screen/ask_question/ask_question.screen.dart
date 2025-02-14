@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:laundromats/src/common/header.widget.dart';
 import 'package:laundromats/src/components/bottom_nav_bar.dart';
-import 'package:laundromats/src/constants/app_button.dart';
 import 'package:laundromats/src/constants/app_styles.dart';
 import 'package:laundromats/src/services/authservice.dart';
 import 'package:laundromats/src/translate/en.dart';
@@ -407,10 +406,12 @@ class _AskQuestionScreenState extends ConsumerState<AskQuestionScreen> {
       );
 
       // Close the loading dialog
+      // ignore: use_build_context_synchronously
       if (mounted) Navigator.pop(context);
 
       if (result["success"]) {
         // Success message
+        // ignore: use_build_context_synchronously
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Question created successfully!')),
         );
@@ -471,6 +472,16 @@ class _AskQuestionScreenState extends ConsumerState<AskQuestionScreen> {
       child: Scaffold(
           backgroundColor: kColorWhite,
           resizeToAvoidBottomInset: true,
+          appBar: PreferredSize(
+            preferredSize:
+                const Size.fromHeight(0.0), // Adjust the height as needed
+            child: AppBar(
+              backgroundColor: kColorWhite,
+              elevation: 0, // Removes shadow for a flat UI
+              automaticallyImplyLeading:
+                  false, // Hides back button if unnecessary
+            ),
+          ),
           body: SizedBox.expand(
               child: SingleChildScrollView(
             child: FocusScope(
@@ -479,7 +490,8 @@ class _AskQuestionScreenState extends ConsumerState<AskQuestionScreen> {
                 child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: <Widget>[
-                      const HeaderWidget(role: true, isLogoutBtn: false),
+                      const HeaderWidget(
+                          role: true, isLogoutBtn: false, backIcon: false),
                       Padding(
                           padding: EdgeInsets.all(vMin(context, 4)),
                           child: SizedBox(
@@ -511,6 +523,10 @@ class _AskQuestionScreenState extends ConsumerState<AskQuestionScreen> {
                                     fontSize: 14,
                                     color: kColorSecondary,
                                   ),
+                                ),
+                                const Text(
+                                  " *",
+                                  style: TextStyle(color: Colors.red),
                                 ),
                               ],
                             ),
@@ -564,6 +580,10 @@ class _AskQuestionScreenState extends ConsumerState<AskQuestionScreen> {
                                     color: kColorSecondary,
                                   ),
                                 ),
+                                const Text(
+                                  " *",
+                                  style: TextStyle(color: Colors.red),
+                                ),
                               ],
                             ),
                             const SizedBox(height: 8.0),
@@ -612,6 +632,10 @@ class _AskQuestionScreenState extends ConsumerState<AskQuestionScreen> {
                                     fontSize: 14,
                                     color: kColorSecondary,
                                   ),
+                                ),
+                                const Text(
+                                  " *",
+                                  style: TextStyle(color: Colors.red),
                                 ),
                               ],
                             ),
@@ -662,6 +686,10 @@ class _AskQuestionScreenState extends ConsumerState<AskQuestionScreen> {
                                     color: kColorSecondary,
                                   ),
                                 ),
+                                const Text(
+                                  " *",
+                                  style: TextStyle(color: Colors.red),
+                                ),
                               ],
                             ),
                             const SizedBox(height: 8.0),
@@ -710,6 +738,10 @@ class _AskQuestionScreenState extends ConsumerState<AskQuestionScreen> {
                                     fontSize: 14,
                                     color: kColorSecondary,
                                   ),
+                                ),
+                                const Text(
+                                  " *",
+                                  style: TextStyle(color: Colors.red),
                                 ),
                               ],
                             ),
@@ -773,6 +805,10 @@ class _AskQuestionScreenState extends ConsumerState<AskQuestionScreen> {
                                     color: kColorSecondary,
                                   ),
                                 ),
+                                const Text(
+                                  " *",
+                                  style: TextStyle(color: Colors.red),
+                                ),
                               ],
                             ),
                             const SizedBox(height: 8.0),
@@ -834,6 +870,10 @@ class _AskQuestionScreenState extends ConsumerState<AskQuestionScreen> {
                                     fontSize: 14,
                                     color: kColorSecondary,
                                   ),
+                                ),
+                                Text(
+                                  " *",
+                                  style: TextStyle(color: Colors.red),
                                 ),
                               ],
                             ),
@@ -985,6 +1025,7 @@ class _AskQuestionScreenState extends ConsumerState<AskQuestionScreen> {
                                             Icon(
                                               Icons.file_present,
                                               size: 40,
+                                              // ignore: deprecated_member_use
                                               color: Colors.green.withOpacity(
                                                   0.7), // Success color
                                             ),
@@ -1021,6 +1062,7 @@ class _AskQuestionScreenState extends ConsumerState<AskQuestionScreen> {
                                               Icons.file_present,
                                               size: 40,
                                               color:
+                                                  // ignore: deprecated_member_use
                                                   Colors.grey.withOpacity(0.7),
                                             ),
                                             SizedBox(height: vMin(context, 2)),
@@ -1167,16 +1209,29 @@ class _AskQuestionScreenState extends ConsumerState<AskQuestionScreen> {
                           padding: EdgeInsets.all(vMin(context, 4)),
                           child: SizedBox(
                             width: vMin(context, 100),
-                            child: ButtonWidget(
-                              btnType: ButtonWidgetType.askQuestionsBtn,
-                              borderColor: kColorPrimary,
-                              textColor: kColorWhite,
-                              fullColor: kColorPrimary,
-                              size: false,
-                              icon: true,
+                            child: TextButton(
+                              style: TextButton.styleFrom(
+                                backgroundColor:
+                                    kColorPrimary, // Green background color
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(
+                                      8), // Rounded corners
+                                ),
+                                padding: const EdgeInsets.symmetric(
+                                    vertical: 7,
+                                    horizontal: 20), // Adjust padding
+                              ),
                               onPressed: () {
                                 _submitQuestion(context);
                               },
+                              child: const Text(
+                                "Ask Question",
+                                style: TextStyle(
+                                  color: Colors.white, // Text color
+                                  fontSize: 15,
+                                  fontFamily: 'Onset-Regular',
+                                ),
+                              ),
                             ),
                           )),
                       Padding(
